@@ -153,8 +153,6 @@ def main():
     search_regex = args.search
     target_papers = filter_papers(all_papers, search_regex)
 
-    import pdb; pdb.set_trace()
-
     ## Prepare output path
     output = args.output
     if output is None:
@@ -177,7 +175,7 @@ def main():
         with open(output_jsonl, mode=('a' if os.path.exists(output_jsonl) else 'w'), encoding='utf-8') as f:
             f.write(json.dumps(full_info, ensure_ascii=False) + "\n")
         
-        time.sleep(random.uniform(1, 2))
+        # time.sleep(random.uniform(1, 2))
 
     print("\n" + "="*50)
     print(f"Finished: {len(results)} papers info fetched")
