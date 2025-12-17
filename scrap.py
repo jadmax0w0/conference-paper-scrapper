@@ -175,15 +175,18 @@ def main():
         results.append(full_info)
 
         with open(output_jsonl, mode=('a' if os.path.exists(output_jsonl) else 'w'), encoding='utf-8') as f:
-            f.write(json.dumps(full_info) + "\n")
+            f.write(json.dumps(full_info, ensure_ascii=False) + "\n")
         
         time.sleep(random.uniform(1, 2))
 
     print("\n" + "="*50)
     print(f"Finished: {len(results)} papers info fetched")
     
-    with open(args.output, 'w', encoding='utf-8') as f:
+    with open(output, 'w', encoding='utf-8') as f:
         json.dump(results, f, ensure_ascii=False, indent=4)
+    if os.path.exists(output):
+        os.remove(output_jsonl)
+    print(f"Final result saved to {output}")
 
 if __name__ == "__main__":
     main()
