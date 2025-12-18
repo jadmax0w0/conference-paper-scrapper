@@ -123,9 +123,16 @@ def main():
     parser.add_argument("-y", "--year", type=str, default="2025")
     parser.add_argument("-i", "--input", type=str, default=None, help="The exported list of a certain conference's accepted papers (json format)")
     parser.add_argument("-s", "--search", type=str, required=True, help="Keywords for search. Regex supported, e.g., \"(transformer|llm|language model)\"")
-    parser.add_argument("-o", "--output", type=str, default=None, help="Output file of final results, with the title, url, authors, abs of each paper")
+    parser.add_argument("-o", "--output", type=str, default=None, help="Output file name of final results, with the title, url, authors, abs of each paper")
+
+    parser.add_argument("--all_paper_info_dir", type=str, default="./scrapped/all_papers/", help="Directive to save the .json file for all the scrapped papers")
+    parser.add_argument("--keyword_paper_info_dir", type=str, default="./scrapped/keyword_papers", help="Directive to save the papers filtered by the given keyword (in `-s` or `--search`)")
 
     args = parser.parse_args()
+
+    ## Prepare directives
+    os.makedirs(args.all_paper_info_dir, exist_ok=True)
+    os.makedirs(args.keyword_paper_info_dir, exist_ok=True)
     
     ## Get all papers list
     if args.input is None:
@@ -138,7 +145,7 @@ def main():
         
         all_papers = fetch_conference_papers(conference_url, list_selector)
 
-        with open(f"all_papers_{args.conf}_{args.year}_{args.search}_{run_time}.json", mode='w', encoding='utf-8') as f:
+        with open(os.path.join(args.all_paper_info_dir, f"{args.conf}_{args.year}_{args.search}_{run_time}.json"), mode='w', encoding='utf-8') as f:
             f.write(json.dumps(all_papers, ensure_ascii=False, indent=4))
     
     else:
@@ -156,7 +163,8 @@ def main():
     ## Prepare output path
     output = args.output
     if output is None:
-        output = f"paper_result_{args.conf}_{args.year}_{args.search}_{run_time}.json"
+        output = f"{args.conf}_{args.year}_{args.search}_{run_time}.json"
+    output = os.path.join(args.keyword_paper_info_dir, output)
     output_jsonl = output + 'l'
     
     ## Get detailed info on target papers

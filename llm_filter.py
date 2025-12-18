@@ -111,14 +111,20 @@ def main():
     parser.add_argument("-m", "--model_type", type=str, default="deepseek")
     parser.add_argument("-c", "--conf", type=str, default=None)
     parser.add_argument("-y", "--year", type=str, default=2025)
-    parser.add_argument("-i", "--input", type=str, default=None, help="Paper list exported by scrap.py")
-    parser.add_argument("-o", "--output", type=str, default=None)
+    parser.add_argument("-i", "--input", type=str, default=None, help="Paper list (with abstract) exported by scrap.py (in `./scrapped/keyword_papers` folder by default)")
+    parser.add_argument("-o", "--output", type=str, default=None, help="File name for keeping the results of the scored papers")
 
-    parser.add_argument("--only_filter_topic", type=str, default=None, help="If this provided, any other args will be omitted. Provide a file path for detailedly filtered papers by LLM (the .json file that contains `is_of_topic` field)")
+    parser.add_argument("--output_dir", type=str, default="./scrapped/scored_kwpapers/")
+    parser.add_argument("--post_filtered_dir", type=str, default="./scrapped/interested_kwpapers/")
+
+    parser.add_argument("--only_post_filter_topic", type=str, default=None, help="If this provided, any other args will be omitted. Provide a file path for detailedly filtered papers by LLM (the .json file that contains `is_of_topic` field)")
 
     args = parser.parse_args()
 
-    if not args.only_filter_topic:
+    os.makedirs(args.output_dir, exist_ok=True)
+    os.makedirs(args.post_filtered_dir, exist_ok=True)
+
+    if not args.only_post_filter_topic:
         if args.conf is None:
             print("Provide `-c` or `--conf` param. Details see `--help`")
         if args.input is None:
@@ -134,10 +140,15 @@ def main():
         else:
             raise NotImplementedError(f"Model type {args.model_type} not implemented yet")
         
-        client = OpenAI(
-            api_key=os.environ.get('PPSCRAP_APIKEY', "") if args.apikey is None else args.apikey,
-            base_url=base_url
-        )
+        try:
+            client = OpenAI(
+                api_key=os.environ.get('PPSCRAP_APIKEY', "") if args.apikey is None else args.apikey,
+                base_url=base_url
+            )
+        except Exception as e:
+            print(f"Error occured while creating OpenAI client object:\n{e}")
+            print("Check whether you have provided a valid api key in `-k` or `--apikey` argument, or in \"PPSCRAP_APIKEY\" environment variable")
+            return
         
         ## Prepare prompt input
         topic_desc = ""
@@ -153,7 +164,8 @@ def main():
         
         output = args.output
         if output is None:
-            output = f"detailed_filterd_papers_{args.conf}_{args.year}_{run_time}.json"
+            output = f"{args.conf}_{args.year}_{run_time}.json"
+        output = os.path.join(args.output_dir, output)
         output_jsonl = output + 'l'
         
         replies = [{"topic_desc": topic_desc, "venue": args.conf, "year": args.year}]
@@ -194,14 +206,14 @@ def main():
             os.remove(output_jsonl)
         print(f"Final result saved to {output}")
 
-        ## Keep only results for...
-        output_approved_topics = f"papers_to_read_{args.conf}_{args.year}_{run_time}.json"
+        ## Post filtering (by topic scores)
+        output_approved_topics = os.path.join(args.post_filtered_dir, f"{args.conf}_{args.year}_{run_time}.json")
         extract_papers_of_topic(replies, output_approved_topics)
     
     else:
-        with open(args.only_filter_topic, 'r', encoding='utf-8') as f:
+        with open(args.only_post_filter_topic, 'r', encoding='utf-8') as f:
             replies = json.loads(f.read())
-        extract_papers_of_topic(replies, f"papers_to_read_{run_time}.json")
+        extract_papers_of_topic(replies, os.path.join(args.post_filtered_dir, f"{run_time}.json"))
 
 
 if __name__ == "__main__":
